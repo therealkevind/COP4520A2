@@ -1,23 +1,17 @@
 import java.util.Random;
-import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.TimeUnit;
-import java.util.stream.IntStream;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
+import java.util.stream.IntStream;
 
-public class Labyrinth {
-  private final Guest[] guests;
-  private final boolean[] haveVisited;
-  private final ScheduledExecutorService[] executors;
-  
-  public Labyrinth(Guest[] guests) {
-    this.guests = guests;
-    this.haveVisited = new boolean[guests.length];
-    executors = new ScheduledExecutorService[guests.length];
-  }
+public abstract class Labyrinth {
+  private Labyrinth() {}
 
-  public void simulate(Random random) {
+  public static void simulate(Guest[] guests, Random random) {
+    final boolean[] haveVisited = new boolean[guests.length];
+    final ScheduledExecutorService[] executors = new ScheduledExecutorService[guests.length];
     for (int i = 0; i < guests.length; i++) {
       haveVisited[i] = false;
       executors[i] = Executors.newSingleThreadScheduledExecutor();

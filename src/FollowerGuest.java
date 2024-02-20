@@ -2,11 +2,6 @@ public class FollowerGuest implements Labyrinth.Guest {
   private boolean alreadyEaten = false;
 
   @Override
-  public void run() {
-    
-  }
-
-  @Override
   public Labyrinth.Guest.Decision decide(boolean seesCupcake) {
     if (!alreadyEaten && seesCupcake) {
       alreadyEaten = true;

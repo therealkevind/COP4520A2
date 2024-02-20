@@ -17,9 +17,9 @@ where:
 ## The problem
 An implicit assumption is that the guests don't notice others being asked to visit the labyrinth (or being missing for suspiciously long times); otherwise this would be trivial.
 
-I'm also going to assume that guests will be asked to visit until someone announces everyone's visited. More specifically, I'll assume each guest visits arbitrarily often. Otherwise, no strategy is guaranteed to work (for any strategy, there would be some orderings of guest visits for which it either has guests announce despite not everyone having visited or never has guests announce despite everyone having vistited).
+I'm also going to assume that guests will be asked to visit until someone announces everyone's visited. More specifically, I'll assume each guest visits arbitrarily often. Otherwise, no strategy is guaranteed to work (for any strategy, there would be some orderings of guest visits for which it either has guests announce despite not everyone having visited or never has guests announce despite everyone having visited at least once).
 
-In terms of memory, the guests have a single bit of shared information (whether there's a cupcake), along with an internal state that denotes their behavior on their previous visits to the labyrinth, if any. On each visit the guests may optionally toggle the shared bit (note that requesting a new cupcake and immediately eating it is a no-op), and must announce if they've all visited.
+In terms of memory, the guests have a single bit of shared information (whether there's a cupcake), along with an internal state based on their behavior on their previous visits to the labyrinth, if any. On each visit the guests may optionally toggle the shared bit (note that requesting a new cupcake and immediately eating it is a no-op) and update their state, and may announce if they've all visited (one of them *must* do this at some point).
 
 ## The strategy
 Before the game begins, the guests elect a leader. Then, after the game begins:
@@ -28,7 +28,7 @@ Before the game begins, the guests elect a leader. Then, after the game begins:
   After they've requested a cupcake *N*-1 times, they announce that everyone's visited (and optionally eat the cupcake that's brought, as no one else will).  
   (In other words: If *N* is 1, they announce on their first visit because they've already requested cupcakes 0 times; otherwise, they announce immediately after requesting the (*N*-1)th cupcake.)
 
-(There's a similar strategy where the leader instead gorges themself on cupcakes the other guests provide, but that has the same number of minimum visits to the labyrinth and more visits on average. It also has the side effect of the leader being the only one to eat cupcakes, and them having to eat *N* cupcakes.)
+(There's a similar strategy possible where the leader instead gorges themself on cupcakes the other guests provide, but that has the same number of minimum visits to the labyrinth and more visits on average. It also has the side effect of the leader being the only one to eat cupcakes, and them having to eat *N* cupcakes.)
 
 ## Example execution
 In my implementation, guest 0 is always the leader.

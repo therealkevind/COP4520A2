@@ -7,11 +7,6 @@ public class LeaderGuest implements Labyrinth.Guest {
   }
 
   @Override
-  public void run() {
-    
-  }
-
-  @Override
   public Labyrinth.Guest.Decision decide(boolean seesCupcake) {
     if (!seesCupcake) numRequested++;
     if (numRequested >= numGuests - 1) return Decision.ANNOUNCE;
