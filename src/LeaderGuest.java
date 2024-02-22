@@ -1,4 +1,4 @@
-public class LeaderGuest implements Labyrinth.Guest {
+public class LeaderGuest extends Labyrinth.Guest {
   private final int numGuests;
   private int numRequested = 0;
 
@@ -7,7 +7,7 @@ public class LeaderGuest implements Labyrinth.Guest {
   }
 
   @Override
-  public Labyrinth.Guest.Decision decide(boolean seesCupcake) {
+  public Decision decide(boolean seesCupcake) {
     if (!seesCupcake) numRequested++;
     if (numRequested >= numGuests - 1) return Decision.ANNOUNCE;
     return Decision.LEAVE_CUPCAKE;

@@ -1,8 +1,8 @@
-public class FollowerGuest implements Labyrinth.Guest {
+public class FollowerGuest extends Labyrinth.Guest {
   private boolean alreadyEaten = false;
 
   @Override
-  public Labyrinth.Guest.Decision decide(boolean seesCupcake) {
+  public Decision decide(boolean seesCupcake) {
     if (!alreadyEaten && seesCupcake) {
       alreadyEaten = true;
       return Decision.LEAVE_NO_CUPCAKE;

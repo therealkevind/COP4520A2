@@ -1,31 +1,48 @@
 import java.util.Random;
+import java.util.concurrent.CancellationException;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
-import java.util.concurrent.Executors;
-import java.util.concurrent.Future;
-import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.TimeUnit;
 import java.util.stream.IntStream;
 
-public abstract class Labyrinth {
-  private Labyrinth() {}
+public class Labyrinth {
+  // currentGuest always unsets itself before completing the lastDecision
+  private volatile Guest currentGuest;
+  // lastDecision is always set to a fresh CompletableFuture before a currentGuest is selected
+  private CompletableFuture<Guest.Decision> lastDecision;
+  private boolean hasCupcake;
+  private volatile boolean isRunning;
 
-  public static void simulate(Guest[] guests, Random random) {
+  public Labyrinth() {}
+
+  public void simulate(Guest[] guests, Random random) {
     final boolean[] haveVisited = new boolean[guests.length];
-    final ScheduledExecutorService[] executors = new ScheduledExecutorService[guests.length];
+    currentGuest = null;
+    hasCupcake = true;
+    isRunning = true;
+
     for (int i = 0; i < guests.length; i++) {
-      haveVisited[i] = false;
-      executors[i] = Executors.newSingleThreadScheduledExecutor();
-      executors[i].scheduleWithFixedDelay(guests[i], 1, 1, TimeUnit.MILLISECONDS);
+      guests[i].labyrinth = this;
+      guests[i].setUncaughtExceptionHandler((t, e) -> {
+        e.printStackTrace();
+        // for emergencies
+        // note that Thread.onSpinWait() isn't available until java 9
+        while (lastDecision == null) Thread.yield();
+        // ignores currentGuest in favor of stopping as soon as possible
+        while (isRunning && !lastDecision.cancel(true)) Thread.yield();
+      });
+      guests[i].start();
     }
-    
-    boolean hasCupcake = true;
-    for (boolean hasAnnounced = false; !hasAnnounced;) {
+
+    while (isRunning) {
       final int i = random.nextInt(guests.length);
-      final boolean hadCupcake = hasCupcake;
-      final Future<Guest.Decision> future = executors[i].submit(() -> guests[i].decide(hadCupcake));
+      lastDecision = new CompletableFuture<>();
+      currentGuest = guests[i];
       final Guest.Decision decision;
       try {
-        decision = future.get();
+        decision = lastDecision.get();
+      } catch (CancellationException e) {
+        isRunning = false;
+        return;
       } catch (InterruptedException e) {
         System.err.println("Simulation was interrupted!");
         e.printStackTrace();
@@ -33,28 +50,25 @@ public abstract class Labyrinth {
       } catch (ExecutionException e) {
         System.err.println("Guest " + i + " failed to make a decision!");
         e.getCause().printStackTrace();
+        isRunning = false;
         return;
       }
       haveVisited[i] = true;
       System.out.print("Guest " + i);
       switch (decision) {
-        case LEAVE_CUPCAKE: 
+        case LEAVE_CUPCAKE:
+          System.out.println(hasCupcake ? " leaves the cupcake." : " requests a cupcake.");
           hasCupcake = true;
-          System.out.println(hadCupcake ? " leaves the cupcake." : " requests a cupcake.");
           break;
         case LEAVE_NO_CUPCAKE:
+          System.out.println(hasCupcake ? " eats the cupcake." : " leaves the plate empty.");
           hasCupcake = false;
-          System.out.println(hadCupcake ? " eats the cupcake." : " leaves the plate empty.");
           break;
         case ANNOUNCE:
-          hasAnnounced = true;
+          isRunning = false;
           System.out.println(" announces that all guests have visited!");
           break;
       }
-    }
-
-    for (ScheduledExecutorService exec : executors) {
-      exec.shutdownNow();
     }
 
     final int[] notVisited = IntStream.range(0, guests.length).filter(i -> !haveVisited[i]).toArray();
@@ -83,19 +97,48 @@ public abstract class Labyrinth {
     }
   }
 
-  public static interface Guest extends Runnable {
-    enum Decision {
+  public static abstract class Guest extends Thread {
+    public enum Decision {
       LEAVE_CUPCAKE, LEAVE_NO_CUPCAKE, ANNOUNCE;
     };
+
+    private Labyrinth labyrinth;
+
+    /**
+     * Repeatedly calls {@link #party} until asked to visit, then {@link #decide}s.
+     * Stops when the game's over (or when an exception is thrown).
+     * <p>
+     * Busy-waits instead of using a smarter waiting strategy
+     * in order to better simulate how the guests are busy partying,
+     * not just waiting for their turn in the labyrinth.
+     */
+    @Override
+    public final void run() {
+      while (labyrinth.isRunning) {
+        while (labyrinth.currentGuest != this) {
+          party();
+          if (!labyrinth.isRunning) return;
+        }
+        final Decision decision;
+        try {
+          decision = decide(labyrinth.hasCupcake);
+        } catch (Throwable e) {
+          labyrinth.currentGuest = null;
+          labyrinth.lastDecision.completeExceptionally(e);
+          return;
+        }
+        labyrinth.currentGuest = null;
+        labyrinth.lastDecision.complete(decision);
+      }
+    }
 
     /**
      * Simulate partying. Called while busy-waiting.
      */
-    @Override
-    default void run() {
-
+    public void party() {
+      Thread.yield();
     }
 
-    Decision decide(boolean seesCupcake);
+    public abstract Decision decide(boolean seesCupcake);
   }
 }

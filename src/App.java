@@ -17,7 +17,7 @@ public class App {
         Labyrinth.Guest[] guests = new Labyrinth.Guest[threadCount];
         Arrays.setAll(guests, i -> new FollowerGuest());
         guests[0] = new LeaderGuest(threadCount);
-        Labyrinth.simulate(guests, random);
+        new Labyrinth().simulate(guests, random);
       } break;
       case "2": {
         // TODO
